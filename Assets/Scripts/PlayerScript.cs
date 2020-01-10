@@ -7,6 +7,7 @@ public class PlayerScript : MonoBehaviour
     public  int Player;
     public Material material;
     public int Shining = 0;
+    public bool Bace = false;
     // Start is called before the first frame update
     void Start()
     {
