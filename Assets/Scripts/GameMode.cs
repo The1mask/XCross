@@ -268,7 +268,7 @@ public class GameMode : MonoBehaviour
         num = CheckY(startIndexY, endIndexY, num);
         Debug.Log(num);
         
-        num = CheckXY(startIndexX, endIndexX, startIndexY, endIndexY,  num);
+        num = CheckXY(startIndexX, endIndexX, startIndexY, endIndexY, num);
         Debug.Log(num);
 
         num = CheckYX(startIndexX, endIndexX, startIndexY, endIndexY, num);
@@ -283,23 +283,31 @@ public class GameMode : MonoBehaviour
 
     int CheckX(int startIndexX, int endIndexX, int num)
     {
+        int localnum = 0;
         for (int i = startIndexX; i <= endIndexX; i++)
         {
             if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX + i, _mapY].transform.GetChild(1).tag && mapArr[_mapX + i, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
             {
                 if (!DestroyLine.Contains(mapArr[_mapX + i, _mapY]))
+                {
                     DestroyLine.Add(mapArr[_mapX + i, _mapY]);
-                if (DestroyLine.Count > 2)
+                    Debug.Log("add");
+                    localnum++;
+                }
+                if (DestroyLine.Count > 2 && localnum > 2)
                     num = DestroyLine.Count;
             }
             else
             {
                 if (DestroyLine.Count % 3 != 0 && DestroyLine.Count != 0)
                 {
-                    for (int q = DestroyLine.Count; q > num; q--)
+                    Debug.Log("startclear" + DestroyLine.Count);
+                    for (int q = DestroyLine.Count-1; q > num - 1; q--)
                     {
+                        Debug.Log("clear" + q);
                         DestroyLine.RemoveAt(q);
                     }
+                    localnum = 0;
                 }
             }
         }
@@ -309,31 +317,40 @@ public class GameMode : MonoBehaviour
 
     int CheckY(int startIndexY, int endIndexY, int num)
     {
+        int localnum = 0;
         for (int i = startIndexY; i <= endIndexY; i++)
         {
             if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX, _mapY + i].transform.GetChild(1).tag && mapArr[_mapX, _mapY + i].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
             {
                 if (!DestroyLine.Contains(mapArr[_mapX, _mapY + i]))
+                {
+                    Debug.Log("add");
                     DestroyLine.Add(mapArr[_mapX, _mapY + i]);
-                if (DestroyLine.Count > 2)
+                    localnum++;
+                }
+                if (DestroyLine.Count > 2 && localnum > 2)
                     num = DestroyLine.Count;
             }
             else
             {
+                Debug.Log("startclear" + DestroyLine.Count);
                 if (DestroyLine.Count % 3 != 0 && DestroyLine.Count != 0)
                 {
-                    for (int q = DestroyLine.Count; q > num; q--)
+                    for (int q = DestroyLine.Count - 1; q > num - 1; q--)
                     {
+                        Debug.Log("clear" + q);
                         DestroyLine.RemoveAt(q);
                     }
+                    localnum = 0;
                 }
             }
         }
             return num;
     }
 
-    int CheckXY(int startIndexX, int endIndexX,int startIndexY,int endIndexY,  int num)
+    int CheckXY(int startIndexX, int endIndexX,int startIndexY,int endIndexY, int num)
     {
+        int localnum = 0;
         if (startIndexX < startIndexY)
         {
             startIndexX = startIndexY;
@@ -347,18 +364,22 @@ public class GameMode : MonoBehaviour
             if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX + i, _mapY + i].transform.GetChild(1).tag && mapArr[_mapX + i, _mapY + i].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
             {
                 if (!DestroyLine.Contains(mapArr[_mapX + i, _mapY + i]))
+                {
                     DestroyLine.Add(mapArr[_mapX + i, _mapY + i]);
-                if (DestroyLine.Count > 2)
+                    localnum++;
+                }
+                if (DestroyLine.Count > 2 && localnum > 2)
                     num = DestroyLine.Count;
             }
             else
             {
                 if (DestroyLine.Count % 3 != 0 && DestroyLine.Count != 0)
                 {
-                    for (int q = DestroyLine.Count; q > num ; q--)
+                    for (int q = DestroyLine.Count - 1; q > num - 1 ; q--)
                     {
                         DestroyLine.RemoveAt(q);
                     }
+                    localnum = 0;
                 }
             }
         }
@@ -367,7 +388,8 @@ public class GameMode : MonoBehaviour
 
     int CheckYX(int startIndexX, int endIndexX, int startIndexY, int endIndexY, int num)
     {
-        Debug.Log("_mapX=" + (_mapX) + "_mapY=" + (_mapY) + "startIndexX=" + startIndexX + "endIndexX=" + endIndexX + "startIndexY=" + startIndexY + "endIndexY=" + endIndexY);
+        int localnum = 0;
+        Debug.Log("_mapX=" + (_mapX) + "_mapY=" + (_mapY) + "startIndexX=" + startIndexX + "endIndexX=" + endIndexX + "startIndexY=" + startIndexY + "endIndexY=" + endIndexY + "num" + num);
         if (Mathf.Abs(startIndexX) >= endIndexY)
         {
             startIndexX = endIndexY;
@@ -379,24 +401,25 @@ public class GameMode : MonoBehaviour
         Debug.Log("_mapX=" + (_mapX) + "_mapY=" + (_mapY) + "startIndexX=" + startIndexX + "endIndexX=" + endIndexX);
         for (int i = endIndexX; i <= Mathf.Abs(startIndexX); i++)
             {
-                
-                Debug.Log("_mapX" + (_mapX - i) + "_mapY" + (_mapY + i));
                 if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX - i, _mapY + i].transform.GetChild(1).tag && mapArr[_mapX - i, _mapY + i].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
                 {
-                Debug.Log("_mapX" + (_mapX - i) + "_mapY" +(_mapY + i) );
                     if (!DestroyLine.Contains(mapArr[_mapX - i, _mapY + i]))
+                    {
                         DestroyLine.Add(mapArr[_mapX - i, _mapY + i]);
-                    if (DestroyLine.Count > 2)
+                        localnum++;
+                    }
+                    if (DestroyLine.Count > 2 && localnum > 2)
                         num = DestroyLine.Count;
                 }
                 else
                 {
                     if (DestroyLine.Count % 3 != 0 && DestroyLine.Count != 0)
                     {
-                        for (int q = DestroyLine.Count; q > num; q--)
+                        for (int q = DestroyLine.Count - 1; q > num - 1; q--)
                         {
                             DestroyLine.RemoveAt(q);
                         }
+                        localnum = 0;
                     }
                 }
             }
