@@ -25,6 +25,7 @@ public class GameMode : MonoBehaviour
     private bool _phaseMenu;                                        //Phase menu close/open
     public int MapSize;                                             //Map size :|
     public Vector3 titleCoord;                                      //Coordinats of cell at Scene
+    private Color[] _playerColor;
     private int _gameMode;                                          /*Current GameMode: 0 - Players Place Baces
                                                                                         1 - Main GamePlay
                                                                                         3 - End of Match        */
@@ -32,8 +33,8 @@ public class GameMode : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        PlayerNum = 0;
-        _player = 1;
+        _playerColor = new Color[2] { new Vector4(0, 0, 255, 1), new Vector4(255, 0, 0, 1) }; 
+        _player = 0;
         MapSize = 6;
         mapArr = new GameObject[MapSize, MapSize];
         CurrScore = new int[PlayerAmount];
@@ -66,10 +67,9 @@ public class GameMode : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            Debug.Log("CliCked");
             if (Physics.Raycast(ray, out hit))
             {
-                    _clicked = hit.collider.gameObject;
+                    _clicked = hit.collider.transform.parent.gameObject;
                     switch (_gameMode)
                     {
                         case 0:
@@ -90,9 +90,7 @@ public class GameMode : MonoBehaviour
                                         titleCoord = hit.collider.gameObject.transform.position;
                                         MenuGate(_clicked);
                                         GetArrFormObj(_clicked);
-                                        _selected = mapArr[_mapX, _mapY];
-
-                                        //Win();
+                                        _selected = hit.collider.transform.parent.gameObject;
                                     }
                                 }
                             }
@@ -104,7 +102,7 @@ public class GameMode : MonoBehaviour
                                 }
                                 else
                                 {
-                                SpawnPlayerCell(hit.collider.transform.parent.gameObject);
+                                    SpawnPlayerCell(hit.collider.transform.parent.gameObject);
                                 }
                             }
                             break;
@@ -115,30 +113,31 @@ public class GameMode : MonoBehaviour
         if (Input.GetMouseButtonUp(0))
         {
             _pressed = false;
-            //Уничтожаем Меню//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+           
         }
     }
 
-    void SpawnPlayerCell(GameObject Secected)
+    void SpawnPlayerCell(GameObject Clicked)
     {
         GetArrFormObj(_selected);
         titleCoord = _selected.transform.position;
         Destroy(mapArr[_mapX, _mapY]);
-        mapArr[_mapX, _mapY] = Instantiate(Secected, titleCoord, Quaternion.identity) as GameObject;
-        if(_player == 1)
+        mapArr[_mapX, _mapY] = Clicked;
+        Clicked.transform.position = titleCoord;
+        _selected = mapArr[_mapX, _mapY];
+        if (_player == 1)
         {
             mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
-            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(new Vector4(0, 0, 255, 1));
-            _player++;
+            _player--;
         }
         else
         {
             mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
-            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(new Vector4(255, 0, 0, 1));
-            _player--;
+            _player++;
         }
         CheckMap(_mapX, _mapY);
         MenuGate(_clicked);
+        Win();
     }
 
     void GetArrFormObj(GameObject Cell)
@@ -150,7 +149,7 @@ public class GameMode : MonoBehaviour
     void BlurStartCell(int mapX, int mapY, bool enable)
     {
         Vector4 color;
-        if (_player==1)
+        if (_player==0)
         {
             color = new Vector4(0, 0, 155, 1);
         }
@@ -178,14 +177,14 @@ public class GameMode : MonoBehaviour
     bool PlaceBace(GameObject _selected)
     {
         GetArrFormObj(_selected);
-        if (_player == 1 && _mapY == 0)
+        if (_player == 0 && _mapY == 0)
         {
             BlurStartCell(MapSize - 1, 0, false);
             Destroy(mapArr[_mapX, _mapY]);
             mapArr[_mapX, _mapY] = Instantiate(cell[1], _selected.transform.position, Quaternion.identity) as GameObject;
             mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
             mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace = true;
-            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(new Vector4(0, 0, 255, 1));
+            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
              _player++;
             BlurStartCell(MapSize - 1, MapSize - 1, true);
             
@@ -193,14 +192,14 @@ public class GameMode : MonoBehaviour
         }
         else
         {
-            if (_player == 2 && _mapY == (MapSize - 1))
+            if (_player == 1 && _mapY == (MapSize - 1))
             {
                 BlurStartCell(MapSize - 1, MapSize - 1, false);
                 Destroy(mapArr[_mapX, _mapY]);
                 mapArr[_mapX, _mapY] = Instantiate(cell[1], _selected.transform.position, Quaternion.identity) as GameObject;
                 mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
                 mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace = true;
-                mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(new Vector4(255, 0, 0, 1));
+                mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
                 
                 _player--;
                 return true;
@@ -220,7 +219,6 @@ public class GameMode : MonoBehaviour
                 if (i < 0)
                 {
                     i++;
-                    
                 }
                 if (q < 0)
                 {
@@ -229,18 +227,20 @@ public class GameMode : MonoBehaviour
                 }
                 if (i > (MapSize - 1))
                 {
-                    
                     return false;
                 }
                 if (q > (MapSize - 1))
                 {
-                    q = _mapY - 1;
-                    i++;
-                    
+                    break;
                 }
                 else
                 {
+                    Debug.Log(_player);
                     if (mapArr[i, q].transform.GetChild(1).GetComponent<PlayerScript>().Player == _player)
+                    {
+                        return true;
+                    }
+                    if (mapArr[i, q].transform.GetChild(1).GetComponent<PlayerScript>().Player != _player && Clicked.transform.GetChild(1).GetComponent<PlayerScript>().Bace)
                     {
                         return true;
                     }
@@ -264,15 +264,10 @@ public class GameMode : MonoBehaviour
         DestroyLine = new List<GameObject>();
 
         num = CheckX(startIndexX, endIndexX, num);
-        Debug.Log(num);
         num = CheckY(startIndexY, endIndexY, num);
-        Debug.Log(num);
-        
         num = CheckXY(startIndexX, endIndexX, startIndexY, endIndexY, num);
-        Debug.Log(num);
-
         num = CheckYX(startIndexX, endIndexX, startIndexY, endIndexY, num);
-        Debug.Log(num);
+
         if (num > 2)
         {
             ClearLine(num);
@@ -291,7 +286,6 @@ public class GameMode : MonoBehaviour
                 if (!DestroyLine.Contains(mapArr[_mapX + i, _mapY]))
                 {
                     DestroyLine.Add(mapArr[_mapX + i, _mapY]);
-                    Debug.Log("add");
                     localnum++;
                 }
                 if (DestroyLine.Count > 2 && localnum > 2)
@@ -301,10 +295,8 @@ public class GameMode : MonoBehaviour
             {
                 if (DestroyLine.Count % 3 != 0 && DestroyLine.Count != 0)
                 {
-                    Debug.Log("startclear" + DestroyLine.Count);
                     for (int q = DestroyLine.Count-1; q > num - 1; q--)
                     {
-                        Debug.Log("clear" + q);
                         DestroyLine.RemoveAt(q);
                     }
                     localnum = 0;
@@ -324,7 +316,6 @@ public class GameMode : MonoBehaviour
             {
                 if (!DestroyLine.Contains(mapArr[_mapX, _mapY + i]))
                 {
-                    Debug.Log("add");
                     DestroyLine.Add(mapArr[_mapX, _mapY + i]);
                     localnum++;
                 }
@@ -333,12 +324,10 @@ public class GameMode : MonoBehaviour
             }
             else
             {
-                Debug.Log("startclear" + DestroyLine.Count);
                 if (DestroyLine.Count % 3 != 0 && DestroyLine.Count != 0)
                 {
                     for (int q = DestroyLine.Count - 1; q > num - 1; q--)
                     {
-                        Debug.Log("clear" + q);
                         DestroyLine.RemoveAt(q);
                     }
                     localnum = 0;
@@ -389,7 +378,6 @@ public class GameMode : MonoBehaviour
     int CheckYX(int startIndexX, int endIndexX, int startIndexY, int endIndexY, int num)
     {
         int localnum = 0;
-        Debug.Log("_mapX=" + (_mapX) + "_mapY=" + (_mapY) + "startIndexX=" + startIndexX + "endIndexX=" + endIndexX + "startIndexY=" + startIndexY + "endIndexY=" + endIndexY + "num" + num);
         if (Mathf.Abs(startIndexX) >= endIndexY)
         {
             startIndexX = endIndexY;
@@ -398,7 +386,6 @@ public class GameMode : MonoBehaviour
         {
             endIndexX = startIndexY;
         }
-        Debug.Log("_mapX=" + (_mapX) + "_mapY=" + (_mapY) + "startIndexX=" + startIndexX + "endIndexX=" + endIndexX);
         for (int i = endIndexX; i <= Mathf.Abs(startIndexX); i++)
             {
                 if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX - i, _mapY + i].transform.GetChild(1).tag && mapArr[_mapX - i, _mapY + i].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
@@ -428,8 +415,7 @@ public class GameMode : MonoBehaviour
 
     void ClearLine(int num)
     {
-        Debug.Log("ClearLine");
-        if (num == 3)
+        if (num==3)
         {
             foreach (GameObject line in DestroyLine)
             {
@@ -443,20 +429,24 @@ public class GameMode : MonoBehaviour
         }
         else
         {
-           
+            foreach (GameObject line in DestroyLine)
+            {
+                if (line != _selected && line.transform.GetChild(1).GetComponent<PlayerScript>().Player != _selected.transform.GetChild(1).GetComponent<PlayerScript>().Player)
+                {
+                    Destroy(line);
+                    GetArrFormObj(line);
+                    mapArr[_mapX, _mapY] = Instantiate(cell[0], line.transform.position, Quaternion.identity) as GameObject;
+                }
+            }
         }
     }
  
 
     bool Win()
     {
-        if (mapArr[0, 1].layer != 10 && mapArr[0, 1].layer != 8 || mapArr[1, 1].layer != 10 && mapArr[1, 1].layer != 8 || mapArr[1, 0].layer != 10 && mapArr[1, 0].layer != 8)
+        if (CanSpawn(_selected))
         {
-            Title[1].text = "WIN";
-        }
-        if (mapArr[5, 4].layer != 10 && mapArr[5, 4].layer != 9 || mapArr[4, 5].layer != 10 && mapArr[4, 5].layer != 9 || mapArr[4, 4].layer != 10 && mapArr[4, 4].layer != 9)
-        {
-            Title[0].text = "WIN";
+            Title[_player].text = "WIN";
         }
         return false;
     }
@@ -466,19 +456,34 @@ public class GameMode : MonoBehaviour
         
         if (!_phaseMenu)
         {
-            for (int i = 0; i < 2; i++)
+            if (_clicked.transform.position.x<25)
             {
-                _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * i, 0, -0.01f), Quaternion.identity) as GameObject;
-                _menu[i].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(new Vector4(0, 0, 255, 1));
-                _phaseMenu = true;
+                for (int i = 0; i < 2; i++)
+                {
+                    _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * i, 0, -0.02f), Quaternion.identity) as GameObject;
+                    _menu[i].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
+                    _phaseMenu = true;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * -i, 0, -0.02f), Quaternion.identity) as GameObject;
+                    _menu[i].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
+                    _phaseMenu = true;
+                }
             }
         }
         else
         {
             for (int i = 0; i < 2; i++)
             {
-                Destroy(_menu[i]);
-                _phaseMenu = false;
+                if (_clicked!= _menu[i])
+                {
+                    Destroy(_menu[i]);
+                    _phaseMenu = false;
+                }
             }
         }
     }
