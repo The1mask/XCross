@@ -25,6 +25,7 @@ public class GameMode : MonoBehaviour
     private bool _phaseMenu;                                        //Phase menu close/open
     public int MapSize;                                             //Map size :|
     public Vector3 titleCoord;                                      //Coordinats of cell at Scene
+    private Color[] _playerColor;
     private int _gameMode;                                          /*Current GameMode: 0 - Players Place Baces
                                                                                         1 - Main GamePlay
                                                                                         3 - End of Match        */
@@ -32,8 +33,8 @@ public class GameMode : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        PlayerNum = 0;
-        _player = 1;
+        _playerColor = new Color[2] { new Vector4(0, 0, 0.4f, 1), new Vector4(0.4f, 0, 0, 1) };
+        _player = 0;
         MapSize = 6;
         mapArr = new GameObject[MapSize, MapSize];
         CurrScore = new int[PlayerAmount];
@@ -50,7 +51,7 @@ public class GameMode : MonoBehaviour
             for (int q = 0; q < MapSize; q++)
             {
                 mapArr[i, q] = Instantiate(cell[0], new Vector3(i * 5.12F, q * 5.12f, 0), Quaternion.identity) as GameObject;
-                mapArr[i, q].GetComponent<PlayerScript>().Player = 0;
+                mapArr[i, q].transform.GetChild(1).GetComponent<PlayerScript>().Player = -1;
             }
         }
         BlurStartCell(MapSize - 1, 0, true);
@@ -66,77 +67,79 @@ public class GameMode : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            Debug.Log("CliCked");
             if (Physics.Raycast(ray, out hit))
             {
-                    _clicked = hit.collider.gameObject;
-                    switch (_gameMode)
-                    {
-                        case 0:
-                            if (PlaceBace(_clicked))
+                _clicked = hit.collider.transform.parent.gameObject;
+                switch (_gameMode)
+                {
+                    case 0:
+                        if (PlaceBace(_clicked))
+                        {
+                            _gameMode += 1;
+                        }
+
+                        break;
+                    case 1:
+
+                        if (!_phaseMenu)
+                        {
+                            if (hit.collider.gameObject.tag == "0")
                             {
-                                _gameMode += 1;
-                            }
-                            
-                            break;
-                        case 1:
-                            
-                            if (!_phaseMenu)
-                            {
-                                if (CanSpawn(_clicked))
+                                if (CheckAround(_clicked, 0))
                                 {
                                     titleCoord = hit.collider.gameObject.transform.position;
                                     MenuGate(_clicked);
                                     GetArrFormObj(_clicked);
-                                    _selected = mapArr[_mapX,_mapY];
-                                    
-                                    //Win();
+                                    _selected = hit.collider.transform.parent.gameObject;
+                                }
                             }
-                            }
-                            else  
+                        }
+                        else
+                        {
+                            if (hit.collider.gameObject.tag == "0")
                             {
-                                if (hit.collider.gameObject.tag == "0")
-                                {
-                                   
-                                    MenuGate(_clicked);
-                                }
-                                else
-                                {
-                                SpawnPlayerCell(hit.collider.gameObject);
-                                }
+                                MenuGate(_clicked);
                             }
-                            break;
-                    
+                            else
+                            {
+                                SpawnPlayerCell(hit.collider.transform.parent.gameObject);
+                            }
+                        }
+                        break;
+
                 }
             }
         }
         if (Input.GetMouseButtonUp(0))
         {
             _pressed = false;
-            //Уничтожаем Меню//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         }
     }
 
-    void SpawnPlayerCell(GameObject Secected)
+    void SpawnPlayerCell(GameObject Clicked)
     {
         GetArrFormObj(_selected);
         titleCoord = _selected.transform.position;
         Destroy(mapArr[_mapX, _mapY]);
-        mapArr[_mapX, _mapY] = Instantiate(Secected, titleCoord, Quaternion.identity) as GameObject;
-        if(_player == 1)
+        mapArr[_mapX, _mapY] = Clicked;
+        Clicked.transform.position = titleCoord;
+        _selected = mapArr[_mapX, _mapY];
+        if (_player == 1)
         {
-            mapArr[_mapX, _mapY].GetComponent<PlayerScript>().Player = _player;
-            mapArr[_mapX, _mapY].GetComponent<PlayerScript>().SetMainColor(new Vector4(0, 0, 255, 1));
-            _player++;
+            Debug.Log(_player);
+            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
+            _player--;
         }
         else
         {
-            mapArr[_mapX, _mapY].GetComponent<PlayerScript>().Player = _player;
-            mapArr[_mapX, _mapY].GetComponent<PlayerScript>().SetMainColor(new Vector4(255, 0, 0, 1));
-            _player--;
+            Debug.Log(_player);
+            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
+            _player++;
         }
-        Debug.Log("x" + _mapX + "y" + _mapY);
-        CheckMap(_mapX, _mapY);
+        MenuGate(_clicked);
+        CheckLine(_mapX, _mapY);
+        Win();
     }
 
     void GetArrFormObj(GameObject Cell)
@@ -148,28 +151,27 @@ public class GameMode : MonoBehaviour
     void BlurStartCell(int mapX, int mapY, bool enable)
     {
         Vector4 color;
-        if (_player==1)
+        if (_player == 0)
         {
-            color = new Vector4(0, 0, 155, 1);
+            color = new Vector4(0.1f, 0.1f, 0.8f, 1);
         }
         else
         {
-            color = new Vector4(155, 0, 0, 1);
+            color = new Vector4(0.8f, 0.1f, 0.1f, 1);
         }
         if (enable)
         {
             for (int i = MapSize - 1; i >= 0; i--)
             {
-                mapArr[mapX - i, mapY].GetComponent<PlayerScript>().Shining = 1;
-                mapArr[mapX - i, mapY].GetComponent<PlayerScript>().SetSecColor(color);
+                mapArr[mapX - i, mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetSecColor(color, true);
+
             }
         }
         else
         {
             for (int i = MapSize - 1; i >= 0; i--)
             {
-                mapArr[mapX - i, mapY].GetComponent<PlayerScript>().Shining = 0;
-                mapArr[mapX - i, mapY].GetComponent<PlayerScript>().SetSecColor(new Vector4(255,255,255,1));
+                mapArr[mapX - i, mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetSecColor(new Vector4(255, 255, 255, 1), false);
             }
         }
     }
@@ -177,27 +179,30 @@ public class GameMode : MonoBehaviour
     bool PlaceBace(GameObject _selected)
     {
         GetArrFormObj(_selected);
-        if (_player == 1 && _mapY == 0)
+        if (_player == 0 && _mapY == 0)
         {
+            BlurStartCell(MapSize - 1, 0, false);
             Destroy(mapArr[_mapX, _mapY]);
             mapArr[_mapX, _mapY] = Instantiate(cell[1], _selected.transform.position, Quaternion.identity) as GameObject;
-            mapArr[_mapX, _mapY].GetComponent<PlayerScript>().Player = _player;
-            mapArr[_mapX, _mapY].GetComponent<PlayerScript>().Bace = true;
-            mapArr[_mapX, _mapY].GetComponent<PlayerScript>().SetMainColor(new Vector4(0, 0, 255, 1));
+            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
+            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace = true;
+            mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
             _player++;
-            BlurStartCell(MapSize - 1, 0, false);
             BlurStartCell(MapSize - 1, MapSize - 1, true);
+
+
         }
         else
         {
-            if (_player == 2 && _mapY == (MapSize - 1))
+            if (_player == 1 && _mapY == (MapSize - 1))
             {
+                BlurStartCell(MapSize - 1, MapSize - 1, false);
                 Destroy(mapArr[_mapX, _mapY]);
                 mapArr[_mapX, _mapY] = Instantiate(cell[1], _selected.transform.position, Quaternion.identity) as GameObject;
-                mapArr[_mapX, _mapY].GetComponent<PlayerScript>().Player = _player;
-                mapArr[_mapX, _mapY].GetComponent<PlayerScript>().Bace = true;
-                mapArr[_mapX, _mapY].GetComponent<PlayerScript>().SetMainColor(new Vector4(255, 0, 0, 1));
-                BlurStartCell(MapSize - 1, MapSize - 1, false);
+                mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
+                mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace = true;
+                mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
+
                 _player--;
                 return true;
             }
@@ -205,10 +210,9 @@ public class GameMode : MonoBehaviour
         return false;
     }
 
-    bool CanSpawn(GameObject Clicked) //Check, if there is an allied figure nearby, return true
+    bool CheckAround(GameObject Clicked, int var) //Check, if there is an allied figure nearby, return true
     {
         GetArrFormObj(Clicked);
-
         for (int i = _mapX - 1; i <= _mapX + 1; i++)       //Check current cell +/- 1 cell around
         {
             for (int q = _mapY - 1; q <= _mapY + 1; q++)
@@ -216,270 +220,285 @@ public class GameMode : MonoBehaviour
                 if (i < 0)
                 {
                     i++;
-                    Debug.Log("i");
                 }
                 if (q < 0)
                 {
                     q++;
-                    Debug.Log("q");
+
                 }
                 if (i > (MapSize - 1))
                 {
-                    Debug.Log("imax");
                     return false;
                 }
                 if (q > (MapSize - 1))
                 {
-                    q = _mapY - 1;
-                    i++;
-                    Debug.Log("qmax");
+                    break;
                 }
                 else
                 {
-                    if (mapArr[i, q].GetComponent<PlayerScript>().Player == _player)
+                    if (var == 0)
                     {
-                        return true;
+                        if (mapArr[i, q].transform.GetChild(1).GetComponent<PlayerScript>().Player == _player)
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        if (mapArr[i, q].transform.GetChild(1).GetComponent<PlayerScript>().Bace && Clicked.transform.GetChild(1).GetComponent<PlayerScript>().Player != mapArr[i, q].transform.GetChild(1).GetComponent<PlayerScript>().Player)
+                        {
+                            return true;
+                        }
                     }
                 }
-                
-                
+
+
             }
         }
         return false;
     }
 
 
-    bool CheckMap(int mapX, int mapY)
+    bool CheckLine(int mapX, int mapY)
     {
         int num = 0;
-        int startIndexX = 0 - mapX;
-        int endIndexX = 5 - mapX;
-        int startIndexY = 0 - mapY;
-        int endIndexY = 5 - mapY;
+        int startIndexX = 0 - _mapX;
+        int endIndexX = 5 - _mapX;
+        int startIndexY = 0 - _mapY;
+        int endIndexY = _mapY - 5;
         DestroyLine = new List<GameObject>();
 
+        num = CheckX(startIndexX, endIndexX, num);
+        num = CheckY(startIndexY, endIndexY, num);
+        num = CheckXY(startIndexX, endIndexX, startIndexY, endIndexY, num);
+        num = CheckYX(startIndexX, endIndexX, startIndexY, endIndexY, num);
+        if (num > 2)
+        {
+            ClearLine(num);
+        }
+        return false;
 
+    }
+
+    int CheckX(int startIndexX, int endIndexX, int num)
+    {
+        int localnum = 0;
         for (int i = startIndexX; i <= endIndexX; i++)
         {
-            if (mapArr[mapX, mapY].tag == mapArr[mapX + i, mapY].tag && mapArr[mapX + i, mapY].GetComponent<PlayerScript>().Bace == false)
+            if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX + i, _mapY].transform.GetChild(1).tag && mapArr[_mapX + i, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
             {
-                DestroyLine.Insert(num, mapArr[mapX + i, mapY]);
-                num = num + 1;
-
-                if (num > 2)
+                if (!DestroyLine.Contains(mapArr[_mapX + i, _mapY]) && !(i == endIndexX && localnum < 2))
                 {
-                    Debug.Log("find x" + num );
-                    //ClearLine(DestroyLine, mapArr[mapX, mapY]);
-                   
+                    DestroyLine.Add(mapArr[_mapX + i, _mapY]);
+                    localnum++;
                 }
-
-
+                if (DestroyLine.Count > 2 && localnum > 2)
+                    num = DestroyLine.Count;
             }
             else
             {
-                if (num != 0)
+                if (DestroyLine.Count != 0)
                 {
-                    for (int q = 0; q < num - 1; q++)
+                    for (int q = DestroyLine.Count - 1; q >= num; q--)
                     {
                         DestroyLine.RemoveAt(q);
                     }
-                    num = 0;
+                    localnum = 0;
                 }
-                
             }
         }
+        return num;
 
-        num = 0;
+    }
 
-        for (int i = startIndexY; i <= endIndexY; i++)
+    int CheckY(int startIndexY, int endIndexY, int num)
+    {
+        int localnum = 0;
+        for (int i = startIndexY; i <= Mathf.Abs(endIndexY); i++)
         {
-            if (mapArr[mapX, mapY].tag == mapArr[mapX, mapY + i].tag && mapArr[mapX, mapY + i].GetComponent<PlayerScript>().Bace == false)
+            if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX, _mapY + i].transform.GetChild(1).tag && mapArr[_mapX, _mapY + i].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
             {
-                DestroyLine.Insert(num, mapArr[mapX, mapY + i]);
-                num = num + 1;
-                if (num > 2)
+                if (!DestroyLine.Contains(mapArr[_mapX, _mapY + i]) && !(i == Mathf.Abs(endIndexY) && localnum < 2))
                 {
-                    Debug.Log("find y" + num);
-                    //ClearLine(DestroyLine, mapArr[mapX, mapY]);
-                    
+                    DestroyLine.Add(mapArr[_mapX, _mapY + i]);
+                    localnum++;
                 }
-
-
+                if (DestroyLine.Count > 2 && localnum > 1)
+                {
+                    num = DestroyLine.Count;
+                }
             }
             else
             {
-                
-                if (num != 0)
+                if (DestroyLine.Count != 0)
                 {
-                    for (int q = 0; q < num - 1; q++)
+                    for (int q = DestroyLine.Count - 1; q >= num; q--)
                     {
                         DestroyLine.RemoveAt(q);
                     }
-                    num = 0;
+                    localnum = 0;
                 }
-                
             }
         }
+        return num;
+    }
 
-        num = 0;
-
-        if(startIndexX < startIndexY)
+    int CheckXY(int startIndexX, int endIndexX, int startIndexY, int endIndexY, int num)
+    {
+        int localnum = 0;
+        if (startIndexX < startIndexY)
         {
             startIndexX = startIndexY;
         }
-        if (endIndexX > endIndexY)
+        if (endIndexX > Mathf.Abs(endIndexY))
         {
-            endIndexX = endIndexY;
+            endIndexX = Mathf.Abs(endIndexY);
         }
-        
         for (int i = startIndexX; i <= endIndexX; i++)
         {
-            if (mapArr[mapX, mapY].tag == mapArr[mapX + i, mapY + i].tag && mapArr[mapX + i, mapY + i].GetComponent<PlayerScript>().Bace == false)
+            if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX + i, _mapY + i].transform.GetChild(1).tag && mapArr[_mapX + i, _mapY + i].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
             {
-                DestroyLine.Insert(num, mapArr[mapX + i, mapY + i]);
-                num = num + 1;
-                if (num > 2)
+
+                if (!DestroyLine.Contains(mapArr[_mapX + i, _mapY + i]) && !(i == endIndexX && localnum < 2))
                 {
-                    Debug.Log("find yx" + num);
-                    //ClearLine(DestroyLine, mapArr[mapX, mapY]);
-                    
+                    DestroyLine.Add(mapArr[_mapX + i, _mapY + i]);
+                    localnum++;
                 }
+                if (DestroyLine.Count > 2 && localnum > 1)
+                    num = DestroyLine.Count;
             }
             else
             {
-                 if (num != 0)
-                 {
-                     for (int q = 0; q < num - 1; q++)
-                     {
-                         DestroyLine.RemoveAt(q);
-                     }
-                     num = 0;
-                 }
-                 
-            }
-        }
-
-        num = 0;
-
-        startIndexX = 0 - mapX;
-        startIndexY = 0 - mapY;
-        Debug.Log("StartX" + startIndexX + "EndX" + endIndexX + "StartY" + startIndexY + "EndY" + endIndexY);
-
-
-        if (Mathf.Abs(startIndexX) > endIndexY)
-        {
-            startIndexX = endIndexY;
-        }
-        if (Mathf.Abs(startIndexY) < endIndexX)
-        {
-            endIndexX = startIndexY;
-        }
-        Debug.Log("StartX" + startIndexX + "EndY" + endIndexX);
-        for (int i = endIndexX; i <= startIndexX; i++)
-        {
-            if (mapArr[mapX, mapY].tag == mapArr[mapX - i, mapY + i].tag && mapArr[mapX - i, mapY + i].GetComponent<PlayerScript>().Bace == false)
-            {
-                DestroyLine.Insert(num, mapArr[mapX - i, mapY + i]);
-                num = num + 1;
-                if (num > 2)
+                if (DestroyLine.Count != 0)
                 {
-                    Debug.Log("find xy" + num);
-                    //ClearLine(DestroyLine, mapArr[mapX, mapY]);
-                    break;
-                }
-            }
-            else
-            {
-                if (num != 0)
-                {
-                    for (int q = 0; q < num-1; q++)
+                    for (int q = DestroyLine.Count - 1; q >= num; q--)
                     {
                         DestroyLine.RemoveAt(q);
                     }
-                    num = 0;
+                    localnum = 0;
                 }
-                
             }
         }
-
-        return false;
-
+        return num;
     }
 
-    
-    void ClearLine(GameObject[] DestroyLine, GameObject current)
+    int CheckYX(int startIndexX, int endIndexX, int startIndexY, int endIndexY, int num)
     {
-        int _player = 0;
-
-        if (PlayerNum % 2 == 0)
+        int localnum = 0;
+        if (startIndexX < endIndexY)
         {
-            _player = 0;
+            startIndexX = endIndexY;
+        }
+        if (Mathf.Abs(startIndexY) > endIndexX)
+        {
+            startIndexY = Mathf.Abs(endIndexX);
         }
         else
         {
-            _player = 1;
+            startIndexY = Mathf.Abs(startIndexY);
         }
-
-        for (int i = 0; i < 3; i++)
+        for (int i = startIndexX; i <= startIndexY; i++)
         {
-            if (DestroyLine[i] != current)
+            if (mapArr[_mapX, _mapY].transform.GetChild(1).tag == mapArr[_mapX + i, _mapY - i].transform.GetChild(1).tag && mapArr[_mapX + i, _mapY - i].transform.GetChild(1).GetComponent<PlayerScript>().Bace == false)
             {
-                _mapX = Mathf.RoundToInt(DestroyLine[i].transform.position.x / 5.12f);
-                _mapY = Mathf.RoundToInt(DestroyLine[i].transform.position.y / 5.12f);
-                Destroy(DestroyLine[i]);
-                mapArr[_mapX, _mapY] = Instantiate(cell[/*1*/1], DestroyLine[i].transform.position, Quaternion.identity) as GameObject;/////////////////////////////////////
-                if (DestroyLine[i].layer == 8 && _player == 1)
+                if (!DestroyLine.Contains(mapArr[_mapX + i, _mapY - i]) && !(i == endIndexX && localnum < 2))
                 {
-                    CurrScore[_player] += 1;
-                    Debug.Log(CurrScore[_player] + _player);
+                    DestroyLine.Add(mapArr[_mapX + i, _mapY - i]);
+                    localnum++;
                 }
-                if (DestroyLine[i].layer == 9 && _player == 0)
+                if (DestroyLine.Count > 2 && localnum > 1)
+                    num = DestroyLine.Count;
+            }
+            else
+            {
+                if (DestroyLine.Count % 3 != 0 && DestroyLine.Count != 0)
                 {
-                    CurrScore[_player] += 1;
-                    Debug.Log(CurrScore[_player] + _player);
+                    for (int q = DestroyLine.Count - 1; q >= num; q--)
+                    {
+                        DestroyLine.RemoveAt(q);
+                    }
+                    localnum = 0;
                 }
             }
         }
-        Score[_player].text = (CurrScore[_player]).ToString();
+        return num;
     }
+
+    void ClearLine(int num)
+    {
+        if (num == 3)
+        {
+            foreach (GameObject line in DestroyLine)
+            {
+                if (line != _selected)
+                {
+                    Destroy(line);
+                    GetArrFormObj(line);
+                    mapArr[_mapX, _mapY] = Instantiate(cell[0], line.transform.position, Quaternion.identity) as GameObject;
+                    mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = -1;
+                }
+            }
+        }
+        else
+        {
+            foreach (GameObject line in DestroyLine)
+            {
+                if (line != _selected)
+                {
+                    Destroy(line);
+                    GetArrFormObj(line);
+                    mapArr[_mapX, _mapY] = Instantiate(cell[0], line.transform.position, Quaternion.identity) as GameObject;
+                    mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = -1;
+                }
+            }
+        }
+    }
+
 
     bool Win()
     {
-        if (mapArr[0, 1].layer != 10 && mapArr[0, 1].layer != 8 || mapArr[1, 1].layer != 10 && mapArr[1, 1].layer != 8 || mapArr[1, 0].layer != 10 && mapArr[1, 0].layer != 8)
+        if (CheckAround(_selected, 1))
         {
-            Title[1].text = "WIN";
-        }
-        if (mapArr[5, 4].layer != 10 && mapArr[5, 4].layer != 9 || mapArr[4, 5].layer != 10 && mapArr[4, 5].layer != 9 || mapArr[4, 4].layer != 10 && mapArr[4, 4].layer != 9)
-        {
-            Title[0].text = "WIN";
+            Title[_player].text = "WIN";
         }
         return false;
     }
 
     void MenuGate(GameObject _clicked)
     {
-        
+
         if (!_phaseMenu)
         {
-            for (int i = 0; i < 2; i++)
+            if (_clicked.transform.position.x < 25)
             {
-                _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * i, 0, -0.01f), Quaternion.identity) as GameObject;
-                _menu[i].GetComponent<PlayerScript>().SetMainColor(new Vector4(0, 0, 255, 1));
-                _phaseMenu = true;
+                for (int i = 0; i < 2; i++)
+                {
+                    _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * i, 0, -0.02f), Quaternion.identity) as GameObject;
+                    _menu[i].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
+                    _phaseMenu = true;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * -i, 0, -0.02f), Quaternion.identity) as GameObject;
+                    _menu[i].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
+                    _phaseMenu = true;
+                }
             }
         }
         else
         {
             for (int i = 0; i < 2; i++)
             {
-                Destroy(_menu[i]);
-                _phaseMenu = false;
+                if (_clicked != _menu[i])
+                {
+                    Destroy(_menu[i]);
+                    _phaseMenu = false;
+                }
             }
         }
     }
 
 }
-
-
-
-
