@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UI;
+using Photon.Pun;
 
-public class GameMode : MonoBehaviour
+public class GameMode : MonoBehaviourPunCallbacks
 {
     public GameObject[,] mapArr;                                    //Game map array
     public GameObject[] cell;                                       //Game cells. Cell[0] = empty cell; Cell[1] = player bace; Cell[3] = o; Cell[4] = x;
@@ -35,7 +36,6 @@ public class GameMode : MonoBehaviour
     {
         _playerColor = new Color[2] { new Vector4(0, 0, 0.4f, 1), new Vector4(0.4f, 0, 0, 1) }; 
         _player = 0;
-        MapSize = 6;
         mapArr = new GameObject[MapSize, MapSize];
         CurrScore = new int[PlayerAmount];
         _menu = new GameObject[PlayerAmount];
@@ -50,7 +50,7 @@ public class GameMode : MonoBehaviour
         {
             for (int q = 0; q < MapSize; q++)
             {
-                mapArr[i, q] = Instantiate(cell[0], new Vector3(i * 5.12F, q * 5.12f, 0), Quaternion.identity) as GameObject;
+                mapArr[i, q] = PhotonNetwork.Instantiate(cell[0].name, new Vector3(i * 5.12F, q * 5.12f, 0), Quaternion.identity) as GameObject;
                 mapArr[i, q].transform.GetChild(1).GetComponent<PlayerScript>().Player = -1;
             }
         }
@@ -61,7 +61,6 @@ public class GameMode : MonoBehaviour
 
     void Update()
     {
-
         RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
@@ -102,6 +101,7 @@ public class GameMode : MonoBehaviour
                                 }
                                 else
                                 {
+                                Debug.Log(hit.collider.transform.parent.gameObject);
                                     SpawnPlayerCell(hit.collider.transform.parent.gameObject);
                                 }
                             }
@@ -121,6 +121,7 @@ public class GameMode : MonoBehaviour
     {
         GetArrFormObj(_selected);
         titleCoord = _selected.transform.position;
+        Debug.Log(Clicked);
         Destroy(mapArr[_mapX, _mapY]);
         mapArr[_mapX, _mapY] = Clicked;
         Clicked.transform.position = titleCoord;
@@ -183,7 +184,7 @@ public class GameMode : MonoBehaviour
         {
             BlurStartCell(MapSize - 1, 0, false);
             Destroy(mapArr[_mapX, _mapY]);
-            mapArr[_mapX, _mapY] = Instantiate(cell[1], _selected.transform.position, Quaternion.identity) as GameObject;
+            mapArr[_mapX, _mapY] = PhotonNetwork.Instantiate(cell[1].name, _selected.transform.position, Quaternion.identity) as GameObject;
             mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
             mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace = true;
             mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
@@ -198,7 +199,7 @@ public class GameMode : MonoBehaviour
             {
                 BlurStartCell(MapSize - 1, MapSize - 1, false);
                 Destroy(mapArr[_mapX, _mapY]);
-                mapArr[_mapX, _mapY] = Instantiate(cell[1], _selected.transform.position, Quaternion.identity) as GameObject;
+                mapArr[_mapX, _mapY] = PhotonNetwork.Instantiate(cell[1].name, _selected.transform.position, Quaternion.identity) as GameObject;
                 mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = _player;
                 mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Bace = true;
                 mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
@@ -434,7 +435,7 @@ public class GameMode : MonoBehaviour
                 {
                     Destroy(line);
                     GetArrFormObj(line);
-                    mapArr[_mapX, _mapY] = Instantiate(cell[0], line.transform.position, Quaternion.identity) as GameObject;
+                    mapArr[_mapX, _mapY] = PhotonNetwork.Instantiate(cell[0].name, line.transform.position, Quaternion.identity) as GameObject;
                     mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = -1;
                 }
             }
@@ -447,7 +448,7 @@ public class GameMode : MonoBehaviour
                 {
                     Destroy(line);
                     GetArrFormObj(line);
-                    mapArr[_mapX, _mapY] = Instantiate(cell[0], line.transform.position, Quaternion.identity) as GameObject;
+                    mapArr[_mapX, _mapY] = PhotonNetwork.Instantiate(cell[0].name, line.transform.position, Quaternion.identity) as GameObject;
                     mapArr[_mapX, _mapY].transform.GetChild(1).GetComponent<PlayerScript>().Player = -1;
                 }
             }
@@ -469,11 +470,11 @@ public class GameMode : MonoBehaviour
         
         if (!_phaseMenu)
         {
-            if (_clicked.transform.position.x<25)
+            if (_clicked.transform.position.x< (MapSize-1)*CellSize)
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * i, 0, -0.02f), Quaternion.identity) as GameObject;
+                    _menu[i] = PhotonNetwork.Instantiate(cell[i + 2].name, titleCoord + new Vector3(5.12f * i, 0, -0.11f), Quaternion.identity) as GameObject;
                     _menu[i].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
                     _phaseMenu = true;
                 }
@@ -482,7 +483,7 @@ public class GameMode : MonoBehaviour
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    _menu[i] = Instantiate(cell[i + 2], titleCoord + new Vector3(5.12f * -i, 0, -0.02f), Quaternion.identity) as GameObject;
+                    _menu[i] = PhotonNetwork.Instantiate(cell[i + 2].name, titleCoord + new Vector3(5.12f * -i, 0, -0.11f), Quaternion.identity) as GameObject;
                     _menu[i].transform.GetChild(1).GetComponent<PlayerScript>().SetMainColor(_playerColor[_player]);
                     _phaseMenu = true;
                 }
@@ -494,6 +495,7 @@ public class GameMode : MonoBehaviour
             {
                 if (_clicked!= _menu[i])
                 {
+                    Debug.Log(_menu[i]);
                     Destroy(_menu[i]);
                     _phaseMenu = false;
                 }

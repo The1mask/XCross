@@ -42,6 +42,6 @@ public class MenuController : MonoBehaviour
     public void SendMessage()
     {
         _userName = getUserName.text;
-        c.SendMessage(_userName);
+        c.SendMessage(11);
     }
 }
